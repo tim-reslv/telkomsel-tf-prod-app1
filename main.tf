@@ -79,7 +79,7 @@ module "eks" {
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
 
-  manage_aws_auth_configmap = true
+  manage_aws_auth_configmap = false
 
   aws_auth_users = [
     {
