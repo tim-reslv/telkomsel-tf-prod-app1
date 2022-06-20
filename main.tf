@@ -15,7 +15,7 @@ provider "kubernetes" {
 }
 
 locals {
-  name            = "prod-consul-client-eks"
+  name            = "prod-App-1"
   cluster_version = "1.22"
   region          = "ap-southeast-3"
 
@@ -51,7 +51,7 @@ module "eks" {
   # the VPC CNI fails to assign IPs and nodes cannot join the cluster
   # See https://github.com/aws/containers-roadmap/issues/1666 for more context
   # TODO - remove this policy once AWS releases a managed version similar to AmazonEKS_CNI_Policy (IPv4)
-  create_cni_ipv6_iam_policy = true
+  create_cni_ipv6_iam_policy = false
 
   cluster_addons = {
     coredns = {
