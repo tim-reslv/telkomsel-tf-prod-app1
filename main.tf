@@ -15,7 +15,7 @@ provider "kubernetes" {
 }
 
 locals {
-  name            = "prod-consul-client-eks"
+  name            = "prod-app-1"
   cluster_version = "1.22"
   region          = "ap-southeast-3"
 
@@ -79,7 +79,7 @@ module "eks" {
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
 
-  manage_aws_auth_configmap = false
+  manage_aws_auth_configmap = true
 
   aws_auth_users = [
     {
