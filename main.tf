@@ -31,6 +31,124 @@ locals {
 data "aws_caller_identity" "current" {}
 
 ################################################################################
+# IRSA Roles
+################################################################################
+module "cluster_autoscaler_irsa_role" {
+  source = "./terraform-aws-eks-master/modules/iam-role-for-service-accounts-eks"
+
+  role_name                        = "cluster-autoscaler"
+  attach_cluster_autoscaler_policy = true
+  cluster_autoscaler_cluster_ids   = [module.eks.cluster_id]
+
+  oidc_providers = {
+    ex = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = ["kube-system:cluster-autoscaler"]
+    }
+  }
+
+  tags = local.tags
+}
+
+module "ebs_csi_irsa_role" {
+  source = "./terraform-aws-eks-master/modules/iam-role-for-service-accounts-eks"
+
+  role_name             = "ebs-csi"
+  attach_ebs_csi_policy = true
+
+  oidc_providers = {
+    ex = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = ["kube-system:ebs-csi-controller-sa"]
+    }
+  }
+
+  tags = local.tags
+}
+
+module "load_balancer_controller_irsa_role" {
+  source = "./terraform-aws-eks-master/modules/iam-role-for-service-accounts-eks"
+
+  role_name                              = "load-balancer-controller"
+  attach_load_balancer_controller_policy = true
+
+  oidc_providers = {
+    ex = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = ["kube-system:aws-load-balancer-controller"]
+    }
+  }
+
+  tags = local.tags
+}
+
+module "load_balancer_controller_targetgroup_binding_only_irsa_role" {
+  source = "./terraform-aws-eks-master/modules/iam-role-for-service-accounts-eks"
+
+  role_name                                                       = "load-balancer-controller-targetgroup-binding-only"
+  attach_load_balancer_controller_targetgroup_binding_only_policy = true
+
+  oidc_providers = {
+    ex = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = ["kube-system:aws-load-balancer-controller"]
+    }
+  }
+
+  tags = local.tags
+}
+
+module "node_termination_handler_irsa_role" {
+  source = "./terraform-aws-eks-master/modules/iam-role-for-service-accounts-eks"
+
+  role_name                              = "node-termination-handler"
+  attach_node_termination_handler_policy = true
+
+  oidc_providers = {
+    ex = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = ["kube-system:aws-node"]
+    }
+  }
+
+  tags = local.tags
+}
+
+module "vpc_cni_ipv4_irsa_role" {
+  source = "./terraform-aws-eks-master/modules/iam-role-for-service-accounts-eks"
+
+  role_name             = "vpc-cni-ipv4"
+  attach_vpc_cni_policy = true
+  vpc_cni_enable_ipv4   = true
+
+  oidc_providers = {
+    ex = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = ["kube-system:aws-node"]
+    }
+  }
+
+  tags = local.tags
+}
+
+module "vpc_cni_ipv6_irsa_role" {
+  source = "./terraform-aws-eks-master/modules/iam-role-for-service-accounts-eks"
+
+  role_name             = "vpc-cni-ipv6"
+  attach_vpc_cni_policy = true
+  vpc_cni_enable_ipv6   = true
+
+  oidc_providers = {
+    ex = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = ["kube-system:aws-node"]
+    }
+  }
+
+  tags = local.tags
+}
+
+################################################################################
 # EKS Module
 ################################################################################
 
@@ -86,6 +204,11 @@ module "eks" {
   manage_aws_auth_configmap = true
 
   aws_auth_users = [
+    {
+      userarn  = "arn:aws:iam::723280554673:user/telkomsel"
+      username = "telkomsel"
+      groups   = ["system:masters"]
+    }
     {
       userarn  = "arn:aws:iam::723280554673:user/telkomsel"
       username = "telkomsel"
@@ -451,6 +574,24 @@ resource "aws_security_group" "additional" {
     from_port = 22
     to_port   = 22
     protocol  = "tcp"
+    cidr_blocks = [
+      "10.0.0.0/8",
+      "172.16.0.0/12",
+      "192.168.0.0/16",
+    ]
+  }
+
+  tags = local.tags
+}
+
+resource "aws_security_group" "vpc-peering" {
+  name_prefix = "${local.name}-vpc-peering"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
     cidr_blocks = [
       "10.0.0.0/8",
       "172.16.0.0/12",
