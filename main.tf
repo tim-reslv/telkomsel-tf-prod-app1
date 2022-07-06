@@ -209,11 +209,6 @@ module "eks" {
       username = "telkomsel"
       groups   = ["system:masters"]
     }
-    {
-      userarn  = "arn:aws:iam::723280554673:user/telkomsel"
-      username = "telkomsel"
-      groups   = ["system:masters"]
-    }
   ]
   aws_auth_accounts = [
     "723280554673",
