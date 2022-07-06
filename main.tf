@@ -15,7 +15,7 @@ provider "kubernetes" {
 }
 
 locals {
-  name            = "prod-app-1"
+  name            = "prod-consul-client-eks"
   cluster_version = "1.22"
   region          = "ap-southeast-3"
 
@@ -23,8 +23,8 @@ locals {
     Example    = local.name
 #    GithubRepo = "terraform-aws-eks"
 #    GithubOrg  = "terraform-aws-modules"
-	Environment = "prod"
-	Terraform  = "true"
+    Environment = "prod"
+    Terraform  = "true"
   }
 }
 
@@ -169,7 +169,7 @@ module "eks" {
   # the VPC CNI fails to assign IPs and nodes cannot join the cluster
   # See https://github.com/aws/containers-roadmap/issues/1666 for more context
   # TODO - remove this policy once AWS releases a managed version similar to AmazonEKS_CNI_Policy (IPv4)
-  create_cni_ipv6_iam_policy = false
+  create_cni_ipv6_iam_policy = true
 
   cluster_addons = {
     coredns = {
@@ -180,10 +180,10 @@ module "eks" {
       resolve_conflicts        = "OVERWRITE"
       service_account_role_arn = module.vpc_cni_irsa.iam_role_arn
     }
-	aws-ebs-csi-driver = {
+    aws-ebs-csi-driver = {
       resolve_conflicts        = "OVERWRITE"
-      service_account_role_arn = module.vpc_cni_irsa.iam_role_arn
-	}
+      service_account_role_arn = module.ebs_csi_irsa_role.iam_role_arn
+    }
   }
 
   cluster_encryption_config = [{
@@ -569,24 +569,6 @@ resource "aws_security_group" "additional" {
     from_port = 22
     to_port   = 22
     protocol  = "tcp"
-    cidr_blocks = [
-      "10.0.0.0/8",
-      "172.16.0.0/12",
-      "192.168.0.0/16",
-    ]
-  }
-
-  tags = local.tags
-}
-
-resource "aws_security_group" "vpc-peering" {
-  name_prefix = "${local.name}-vpc-peering"
-  vpc_id      = module.vpc.vpc_id
-
-  ingress {
-    from_port = 0
-    to_port   = 0
-    protocol  = "-1"
     cidr_blocks = [
       "10.0.0.0/8",
       "172.16.0.0/12",
